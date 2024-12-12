@@ -9464,6 +9464,8 @@ type CheckpointContainerRequest struct {
 	// Timeout of zero means to use the CRI default.
 	// Timeout > 0 means to use the user specified timeout.
 	Timeout              int64    `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	// Exit indicates if the container should be stopped after the checkpoint
+	Exit bool `protobuf:"varint,4,opt,name=exit,proto3" json:"exit,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
