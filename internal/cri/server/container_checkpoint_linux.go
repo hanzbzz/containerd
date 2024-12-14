@@ -134,7 +134,7 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task for container %q: %w", r.GetContainerId(), err)
 	}
-	img, err := task.Checkpoint(ctx, []client.CheckpointTaskOpts{withCheckpointOpts(i.Runtime.Name, c.getContainerRootDir(r.GetContainerId()))}...)
+	img, err := task.Checkpoint(ctx, []client.CheckpointTaskOpts{withCheckpointOpts(i.Runtime.Name, c.getContainerRootDir(r.GetContainerId()), r.Exit)}...)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
 	}
@@ -208,18 +208,15 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	return &runtime.CheckpointContainerResponse{}, nil
 }
 
-func withCheckpointOpts(rt, rootDir string) client.CheckpointTaskOpts {
+func withCheckpointOpts(rt, rootDir string, exit bool) client.CheckpointTaskOpts {
 	return func(r *client.CheckpointTaskInfo) error {
-		//leaveRunning := true
-
 		switch rt {
 		case plugins.RuntimeRuncV2:
 			if r.Options == nil {
 				r.Options = &options.CheckpointOptions{}
 			}
 			opts, _ := r.Options.(*options.CheckpointOptions)
-
-			//opts.Exit = !leaveRunning
+			opts.Exit = exit
 			opts.WorkPath = rootDir
 			log.L.Warn(opts)
 		}
