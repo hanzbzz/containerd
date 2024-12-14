@@ -67,6 +67,7 @@ func checkForCriu(version int) error {
 
 func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.CheckpointContainerRequest) (*runtime.CheckpointContainerResponse, error) {
 	start := time.Now()
+	log.G(ctx).Error("HEELOO")
 	if err := checkForCriu(podCriuVersion); err != nil {
 		// This is the wrong error message and needs to be adapted once
 		// Kubernetes (the e2e_node/checkpoint) test has been changed to
@@ -220,7 +221,7 @@ func withCheckpointOpts(rt, rootDir string) client.CheckpointTaskOpts {
 
 			//opts.Exit = !leaveRunning
 			opts.WorkPath = rootDir
-			fmt.Println(opts)
+			log.L.Warn(opts)
 		}
 		return nil
 	}
