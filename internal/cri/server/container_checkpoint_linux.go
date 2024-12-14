@@ -218,7 +218,8 @@ func withCheckpointOpts(rt, rootDir string, exit bool) client.CheckpointTaskOpts
 			opts, _ := r.Options.(*options.CheckpointOptions)
 			opts.Exit = exit
 			opts.WorkPath = rootDir
-			log.L.Warn(opts)
+			optsJson, _ := json.Marshal(opts)
+			log.L.Warn(string(optsJson))
 		}
 		return nil
 	}
