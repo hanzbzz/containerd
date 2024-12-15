@@ -67,7 +67,8 @@ func checkForCriu(version int) error {
 
 func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.CheckpointContainerRequest) (*runtime.CheckpointContainerResponse, error) {
 	start := time.Now()
-	log.G(ctx).Error("HEELOO")
+	rJson, _ := json.Marshal(r)
+	log.L.Warn(string(rJson))
 	if err := checkForCriu(podCriuVersion); err != nil {
 		// This is the wrong error message and needs to be adapted once
 		// Kubernetes (the e2e_node/checkpoint) test has been changed to
@@ -212,6 +213,8 @@ func withCheckpointOpts(rt, rootDir string, exit bool) client.CheckpointTaskOpts
 	return func(r *client.CheckpointTaskInfo) error {
 		switch rt {
 		case plugins.RuntimeRuncV2:
+			r_opts_json, _ := json.Marshal(r.Options)
+			log.L.Warn(string(r_opts_json))
 			if r.Options == nil {
 				r.Options = &options.CheckpointOptions{}
 			}
@@ -219,6 +222,9 @@ func withCheckpointOpts(rt, rootDir string, exit bool) client.CheckpointTaskOpts
 			opts.Exit = exit
 			opts.WorkPath = rootDir
 			optsJson, _ := json.Marshal(opts)
+			log.L.Warn(string(optsJson))
+			opts.Exit = false
+			optsJson, _ = json.Marshal(opts)
 			log.L.Warn(string(optsJson))
 		}
 		return nil
