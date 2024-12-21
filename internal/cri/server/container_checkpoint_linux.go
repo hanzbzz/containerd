@@ -135,6 +135,9 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task for container %q: %w", r.GetContainerId(), err)
 	}
+	r_opts_json, _ := json.Marshal(r)
+	log.L.Warn(string(r_opts_json))
+	log.L.Warn((r.Exit))
 	img, err := task.Checkpoint(ctx, []client.CheckpointTaskOpts{withCheckpointOpts(i.Runtime.Name, c.getContainerRootDir(r.GetContainerId()), r.Exit)}...)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
@@ -213,19 +216,11 @@ func withCheckpointOpts(rt, rootDir string, exit bool) client.CheckpointTaskOpts
 	return func(r *client.CheckpointTaskInfo) error {
 		switch rt {
 		case plugins.RuntimeRuncV2:
-			r_opts_json, _ := json.Marshal(r.Options)
-			log.L.Warn(string(r_opts_json))
 			if r.Options == nil {
 				r.Options = &options.CheckpointOptions{}
 			}
 			opts, _ := r.Options.(*options.CheckpointOptions)
-			opts.Exit = exit
 			opts.WorkPath = rootDir
-			optsJson, _ := json.Marshal(opts)
-			log.L.Warn(string(optsJson))
-			opts.Exit = false
-			optsJson, _ = json.Marshal(opts)
-			log.L.Warn(string(optsJson))
 		}
 		return nil
 	}
