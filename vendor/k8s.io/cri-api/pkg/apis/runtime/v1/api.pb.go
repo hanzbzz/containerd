@@ -627,8 +627,10 @@ func (m *PortMapping) GetHostIp() string {
 type Mount struct {
 	// Path of the mount within the container.
 	ContainerPath string `protobuf:"bytes,1,opt,name=container_path,json=containerPath,proto3" json:"container_path,omitempty"`
-	// Path of the mount on the host. If the hostPath doesn't exist, then runtimes
-	// should report error. If the hostpath is a symbolic link, runtimes should
+	// Path of the mount on the host. Has to be empty if the image field below
+	// is provided, because those fields are mutually exclusive. If the image
+	// field below is nil and the host path doesn't exist, then runtimes should
+	// report an error. If the hostpath is a symbolic link, runtimes should
 	// follow the symlink and mount the real destination to container.
 	HostPath string `protobuf:"bytes,2,opt,name=host_path,json=hostPath,proto3" json:"host_path,omitempty"`
 	// If set, the mount is read-only.
@@ -2217,7 +2219,7 @@ type PodSandboxStatusResponse struct {
 	Info map[string]string `protobuf:"bytes,2,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Container statuses
 	ContainersStatuses []*ContainerStatus `protobuf:"bytes,3,rep,name=containers_statuses,json=containersStatuses,proto3" json:"containers_statuses,omitempty"`
-	// Timestamp at which container and pod statuses were recorded
+	// Timestamp in nanoseconds at which container and pod statuses were recorded
 	Timestamp            int64    `protobuf:"varint,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4681,9 +4683,11 @@ type WindowsContainerResources struct {
 	// Memory limit in bytes. Default: 0 (not specified).
 	MemoryLimitInBytes int64 `protobuf:"varint,4,opt,name=memory_limit_in_bytes,json=memoryLimitInBytes,proto3" json:"memory_limit_in_bytes,omitempty"`
 	// Specifies the size of the rootfs / scratch space in bytes to be configured for this container. Default: 0 (not specified).
-	RootfsSizeInBytes    int64    `protobuf:"varint,5,opt,name=rootfs_size_in_bytes,json=rootfsSizeInBytes,proto3" json:"rootfs_size_in_bytes,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	RootfsSizeInBytes int64 `protobuf:"varint,5,opt,name=rootfs_size_in_bytes,json=rootfsSizeInBytes,proto3" json:"rootfs_size_in_bytes,omitempty"`
+	// Optionally specifies the set of CPUs to affinitize for this container.
+	AffinityCpus         []*WindowsCpuGroupAffinity `protobuf:"bytes,6,rep,name=affinity_cpus,json=affinityCpus,proto3" json:"affinity_cpus,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
+	XXX_sizecache        int32                      `json:"-"`
 }
 
 func (m *WindowsContainerResources) Reset()      { *m = WindowsContainerResources{} }
@@ -4753,6 +4757,72 @@ func (m *WindowsContainerResources) GetRootfsSizeInBytes() int64 {
 	return 0
 }
 
+func (m *WindowsContainerResources) GetAffinityCpus() []*WindowsCpuGroupAffinity {
+	if m != nil {
+		return m.AffinityCpus
+	}
+	return nil
+}
+
+// WindowsCpuGroupAffinity specifies the CPU mask and group to affinitize.
+// This is similar to the following _GROUP_AFFINITY structure:
+// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/miniport/ns-miniport-_group_affinity
+type WindowsCpuGroupAffinity struct {
+	// CPU mask relative to this CPU group.
+	CpuMask uint64 `protobuf:"varint,1,opt,name=cpu_mask,json=cpuMask,proto3" json:"cpu_mask,omitempty"`
+	// Processor group the mask refers to, as returned by
+	// GetLogicalProcessorInformationEx.
+	CpuGroup             uint32   `protobuf:"varint,2,opt,name=cpu_group,json=cpuGroup,proto3" json:"cpu_group,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WindowsCpuGroupAffinity) Reset()      { *m = WindowsCpuGroupAffinity{} }
+func (*WindowsCpuGroupAffinity) ProtoMessage() {}
+func (*WindowsCpuGroupAffinity) Descriptor() ([]byte, []int) {
+	return fileDescriptor_00212fb1f9d3bf1c, []int{62}
+}
+func (m *WindowsCpuGroupAffinity) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *WindowsCpuGroupAffinity) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_WindowsCpuGroupAffinity.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *WindowsCpuGroupAffinity) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WindowsCpuGroupAffinity.Merge(m, src)
+}
+func (m *WindowsCpuGroupAffinity) XXX_Size() int {
+	return m.Size()
+}
+func (m *WindowsCpuGroupAffinity) XXX_DiscardUnknown() {
+	xxx_messageInfo_WindowsCpuGroupAffinity.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WindowsCpuGroupAffinity proto.InternalMessageInfo
+
+func (m *WindowsCpuGroupAffinity) GetCpuMask() uint64 {
+	if m != nil {
+		return m.CpuMask
+	}
+	return 0
+}
+
+func (m *WindowsCpuGroupAffinity) GetCpuGroup() uint32 {
+	if m != nil {
+		return m.CpuGroup
+	}
+	return 0
+}
+
 // ContainerMetadata holds all necessary information for building the container
 // name. The container runtime is encouraged to expose the metadata in its user
 // interface for better user experience. E.g., runtime can construct a unique
@@ -4770,7 +4840,7 @@ type ContainerMetadata struct {
 func (m *ContainerMetadata) Reset()      { *m = ContainerMetadata{} }
 func (*ContainerMetadata) ProtoMessage() {}
 func (*ContainerMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{62}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{63}
 }
 func (m *ContainerMetadata) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -4831,7 +4901,7 @@ type Device struct {
 func (m *Device) Reset()      { *m = Device{} }
 func (*Device) ProtoMessage() {}
 func (*Device) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{63}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{64}
 }
 func (m *Device) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -4895,7 +4965,7 @@ type CDIDevice struct {
 func (m *CDIDevice) Reset()      { *m = CDIDevice{} }
 func (*CDIDevice) ProtoMessage() {}
 func (*CDIDevice) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{64}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{65}
 }
 func (m *CDIDevice) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -4997,7 +5067,7 @@ type ContainerConfig struct {
 func (m *ContainerConfig) Reset()      { *m = ContainerConfig{} }
 func (*ContainerConfig) ProtoMessage() {}
 func (*ContainerConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{65}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{66}
 }
 func (m *ContainerConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5162,7 +5232,7 @@ type CreateContainerRequest struct {
 func (m *CreateContainerRequest) Reset()      { *m = CreateContainerRequest{} }
 func (*CreateContainerRequest) ProtoMessage() {}
 func (*CreateContainerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{66}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{67}
 }
 func (m *CreateContainerRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5222,7 +5292,7 @@ type CreateContainerResponse struct {
 func (m *CreateContainerResponse) Reset()      { *m = CreateContainerResponse{} }
 func (*CreateContainerResponse) ProtoMessage() {}
 func (*CreateContainerResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{67}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{68}
 }
 func (m *CreateContainerResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5268,7 +5338,7 @@ type StartContainerRequest struct {
 func (m *StartContainerRequest) Reset()      { *m = StartContainerRequest{} }
 func (*StartContainerRequest) ProtoMessage() {}
 func (*StartContainerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{68}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{69}
 }
 func (m *StartContainerRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5312,7 +5382,7 @@ type StartContainerResponse struct {
 func (m *StartContainerResponse) Reset()      { *m = StartContainerResponse{} }
 func (*StartContainerResponse) ProtoMessage() {}
 func (*StartContainerResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{69}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{70}
 }
 func (m *StartContainerResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5354,7 +5424,7 @@ type StopContainerRequest struct {
 func (m *StopContainerRequest) Reset()      { *m = StopContainerRequest{} }
 func (*StopContainerRequest) ProtoMessage() {}
 func (*StopContainerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{70}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{71}
 }
 func (m *StopContainerRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5405,7 +5475,7 @@ type StopContainerResponse struct {
 func (m *StopContainerResponse) Reset()      { *m = StopContainerResponse{} }
 func (*StopContainerResponse) ProtoMessage() {}
 func (*StopContainerResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{71}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{72}
 }
 func (m *StopContainerResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5444,7 +5514,7 @@ type RemoveContainerRequest struct {
 func (m *RemoveContainerRequest) Reset()      { *m = RemoveContainerRequest{} }
 func (*RemoveContainerRequest) ProtoMessage() {}
 func (*RemoveContainerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{72}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{73}
 }
 func (m *RemoveContainerRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5488,7 +5558,7 @@ type RemoveContainerResponse struct {
 func (m *RemoveContainerResponse) Reset()      { *m = RemoveContainerResponse{} }
 func (*RemoveContainerResponse) ProtoMessage() {}
 func (*RemoveContainerResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{73}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{74}
 }
 func (m *RemoveContainerResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5528,7 +5598,7 @@ type ContainerStateValue struct {
 func (m *ContainerStateValue) Reset()      { *m = ContainerStateValue{} }
 func (*ContainerStateValue) ProtoMessage() {}
 func (*ContainerStateValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{74}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{75}
 }
 func (m *ContainerStateValue) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5584,7 +5654,7 @@ type ContainerFilter struct {
 func (m *ContainerFilter) Reset()      { *m = ContainerFilter{} }
 func (*ContainerFilter) ProtoMessage() {}
 func (*ContainerFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{75}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{76}
 }
 func (m *ContainerFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5650,7 +5720,7 @@ type ListContainersRequest struct {
 func (m *ListContainersRequest) Reset()      { *m = ListContainersRequest{} }
 func (*ListContainersRequest) ProtoMessage() {}
 func (*ListContainersRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{76}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{77}
 }
 func (m *ListContainersRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5728,7 +5798,7 @@ type Container struct {
 func (m *Container) Reset()      { *m = Container{} }
 func (*Container) ProtoMessage() {}
 func (*Container) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{77}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{78}
 }
 func (m *Container) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5837,7 +5907,7 @@ type ListContainersResponse struct {
 func (m *ListContainersResponse) Reset()      { *m = ListContainersResponse{} }
 func (*ListContainersResponse) ProtoMessage() {}
 func (*ListContainersResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{78}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{79}
 }
 func (m *ListContainersResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5885,7 +5955,7 @@ type ContainerStatusRequest struct {
 func (m *ContainerStatusRequest) Reset()      { *m = ContainerStatusRequest{} }
 func (*ContainerStatusRequest) ProtoMessage() {}
 func (*ContainerStatusRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{79}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{80}
 }
 func (m *ContainerStatusRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -5984,7 +6054,7 @@ type ContainerStatus struct {
 func (m *ContainerStatus) Reset()      { *m = ContainerStatus{} }
 func (*ContainerStatus) ProtoMessage() {}
 func (*ContainerStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{80}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{81}
 }
 func (m *ContainerStatus) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6154,7 +6224,7 @@ type ContainerStatusResponse struct {
 func (m *ContainerStatusResponse) Reset()      { *m = ContainerStatusResponse{} }
 func (*ContainerStatusResponse) ProtoMessage() {}
 func (*ContainerStatusResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{81}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{82}
 }
 func (m *ContainerStatusResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6210,7 +6280,7 @@ type ContainerResources struct {
 func (m *ContainerResources) Reset()      { *m = ContainerResources{} }
 func (*ContainerResources) ProtoMessage() {}
 func (*ContainerResources) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{82}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{83}
 }
 func (m *ContainerResources) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6264,7 +6334,7 @@ type ContainerUser struct {
 func (m *ContainerUser) Reset()      { *m = ContainerUser{} }
 func (*ContainerUser) ProtoMessage() {}
 func (*ContainerUser) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{83}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{84}
 }
 func (m *ContainerUser) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6318,7 +6388,7 @@ type UpdateContainerResourcesRequest struct {
 func (m *UpdateContainerResourcesRequest) Reset()      { *m = UpdateContainerResourcesRequest{} }
 func (*UpdateContainerResourcesRequest) ProtoMessage() {}
 func (*UpdateContainerResourcesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{84}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{85}
 }
 func (m *UpdateContainerResourcesRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6383,7 +6453,7 @@ type UpdateContainerResourcesResponse struct {
 func (m *UpdateContainerResourcesResponse) Reset()      { *m = UpdateContainerResourcesResponse{} }
 func (*UpdateContainerResourcesResponse) ProtoMessage() {}
 func (*UpdateContainerResourcesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{85}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{86}
 }
 func (m *UpdateContainerResourcesResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6426,7 +6496,7 @@ type ExecSyncRequest struct {
 func (m *ExecSyncRequest) Reset()      { *m = ExecSyncRequest{} }
 func (*ExecSyncRequest) ProtoMessage() {}
 func (*ExecSyncRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{86}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{87}
 }
 func (m *ExecSyncRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6498,7 +6568,7 @@ type ExecSyncResponse struct {
 func (m *ExecSyncResponse) Reset()      { *m = ExecSyncResponse{} }
 func (*ExecSyncResponse) ProtoMessage() {}
 func (*ExecSyncResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{87}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{88}
 }
 func (m *ExecSyncResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6574,7 +6644,7 @@ type ExecRequest struct {
 func (m *ExecRequest) Reset()      { *m = ExecRequest{} }
 func (*ExecRequest) ProtoMessage() {}
 func (*ExecRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{88}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{89}
 }
 func (m *ExecRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6655,7 +6725,7 @@ type ExecResponse struct {
 func (m *ExecResponse) Reset()      { *m = ExecResponse{} }
 func (*ExecResponse) ProtoMessage() {}
 func (*ExecResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{89}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{90}
 }
 func (m *ExecResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6716,7 +6786,7 @@ type AttachRequest struct {
 func (m *AttachRequest) Reset()      { *m = AttachRequest{} }
 func (*AttachRequest) ProtoMessage() {}
 func (*AttachRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{90}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{91}
 }
 func (m *AttachRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6790,7 +6860,7 @@ type AttachResponse struct {
 func (m *AttachResponse) Reset()      { *m = AttachResponse{} }
 func (*AttachResponse) ProtoMessage() {}
 func (*AttachResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{91}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{92}
 }
 func (m *AttachResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6838,7 +6908,7 @@ type PortForwardRequest struct {
 func (m *PortForwardRequest) Reset()      { *m = PortForwardRequest{} }
 func (*PortForwardRequest) ProtoMessage() {}
 func (*PortForwardRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{92}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{93}
 }
 func (m *PortForwardRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6891,7 +6961,7 @@ type PortForwardResponse struct {
 func (m *PortForwardResponse) Reset()      { *m = PortForwardResponse{} }
 func (*PortForwardResponse) ProtoMessage() {}
 func (*PortForwardResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{93}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{94}
 }
 func (m *PortForwardResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6937,7 +7007,7 @@ type ImageFilter struct {
 func (m *ImageFilter) Reset()      { *m = ImageFilter{} }
 func (*ImageFilter) ProtoMessage() {}
 func (*ImageFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{94}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{95}
 }
 func (m *ImageFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -6983,7 +7053,7 @@ type ListImagesRequest struct {
 func (m *ListImagesRequest) Reset()      { *m = ListImagesRequest{} }
 func (*ListImagesRequest) ProtoMessage() {}
 func (*ListImagesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{95}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{96}
 }
 func (m *ListImagesRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7049,7 +7119,7 @@ type Image struct {
 func (m *Image) Reset()      { *m = Image{} }
 func (*Image) ProtoMessage() {}
 func (*Image) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{96}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{97}
 }
 func (m *Image) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7144,7 +7214,7 @@ type ListImagesResponse struct {
 func (m *ListImagesResponse) Reset()      { *m = ListImagesResponse{} }
 func (*ListImagesResponse) ProtoMessage() {}
 func (*ListImagesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{97}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{98}
 }
 func (m *ListImagesResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7192,7 +7262,7 @@ type ImageStatusRequest struct {
 func (m *ImageStatusRequest) Reset()      { *m = ImageStatusRequest{} }
 func (*ImageStatusRequest) ProtoMessage() {}
 func (*ImageStatusRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{98}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{99}
 }
 func (m *ImageStatusRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7250,7 +7320,7 @@ type ImageStatusResponse struct {
 func (m *ImageStatusResponse) Reset()      { *m = ImageStatusResponse{} }
 func (*ImageStatusResponse) ProtoMessage() {}
 func (*ImageStatusResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{99}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{100}
 }
 func (m *ImageStatusResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7311,7 +7381,7 @@ type AuthConfig struct {
 func (m *AuthConfig) Reset()      { *m = AuthConfig{} }
 func (*AuthConfig) ProtoMessage() {}
 func (*AuthConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{100}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{101}
 }
 func (m *AuthConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7396,7 +7466,7 @@ type PullImageRequest struct {
 func (m *PullImageRequest) Reset()      { *m = PullImageRequest{} }
 func (*PullImageRequest) ProtoMessage() {}
 func (*PullImageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{101}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{102}
 }
 func (m *PullImageRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7457,7 +7527,7 @@ type PullImageResponse struct {
 func (m *PullImageResponse) Reset()      { *m = PullImageResponse{} }
 func (*PullImageResponse) ProtoMessage() {}
 func (*PullImageResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{102}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{103}
 }
 func (m *PullImageResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7503,7 +7573,7 @@ type RemoveImageRequest struct {
 func (m *RemoveImageRequest) Reset()      { *m = RemoveImageRequest{} }
 func (*RemoveImageRequest) ProtoMessage() {}
 func (*RemoveImageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{103}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{104}
 }
 func (m *RemoveImageRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7547,7 +7617,7 @@ type RemoveImageResponse struct {
 func (m *RemoveImageResponse) Reset()      { *m = RemoveImageResponse{} }
 func (*RemoveImageResponse) ProtoMessage() {}
 func (*RemoveImageResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{104}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{105}
 }
 func (m *RemoveImageResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7587,7 +7657,7 @@ type NetworkConfig struct {
 func (m *NetworkConfig) Reset()      { *m = NetworkConfig{} }
 func (*NetworkConfig) ProtoMessage() {}
 func (*NetworkConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{105}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{106}
 }
 func (m *NetworkConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7632,7 +7702,7 @@ type RuntimeConfig struct {
 func (m *RuntimeConfig) Reset()      { *m = RuntimeConfig{} }
 func (*RuntimeConfig) ProtoMessage() {}
 func (*RuntimeConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{106}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{107}
 }
 func (m *RuntimeConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7677,7 +7747,7 @@ type UpdateRuntimeConfigRequest struct {
 func (m *UpdateRuntimeConfigRequest) Reset()      { *m = UpdateRuntimeConfigRequest{} }
 func (*UpdateRuntimeConfigRequest) ProtoMessage() {}
 func (*UpdateRuntimeConfigRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{107}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{108}
 }
 func (m *UpdateRuntimeConfigRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7721,7 +7791,7 @@ type UpdateRuntimeConfigResponse struct {
 func (m *UpdateRuntimeConfigResponse) Reset()      { *m = UpdateRuntimeConfigResponse{} }
 func (*UpdateRuntimeConfigResponse) ProtoMessage() {}
 func (*UpdateRuntimeConfigResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{108}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{109}
 }
 func (m *UpdateRuntimeConfigResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7780,7 +7850,7 @@ type RuntimeCondition struct {
 func (m *RuntimeCondition) Reset()      { *m = RuntimeCondition{} }
 func (*RuntimeCondition) ProtoMessage() {}
 func (*RuntimeCondition) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{109}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{110}
 }
 func (m *RuntimeCondition) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7848,7 +7918,7 @@ type RuntimeStatus struct {
 func (m *RuntimeStatus) Reset()      { *m = RuntimeStatus{} }
 func (*RuntimeStatus) ProtoMessage() {}
 func (*RuntimeStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{110}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{111}
 }
 func (m *RuntimeStatus) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7894,7 +7964,7 @@ type StatusRequest struct {
 func (m *StatusRequest) Reset()      { *m = StatusRequest{} }
 func (*StatusRequest) ProtoMessage() {}
 func (*StatusRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{111}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{112}
 }
 func (m *StatusRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -7947,7 +8017,7 @@ type RuntimeHandlerFeatures struct {
 func (m *RuntimeHandlerFeatures) Reset()      { *m = RuntimeHandlerFeatures{} }
 func (*RuntimeHandlerFeatures) ProtoMessage() {}
 func (*RuntimeHandlerFeatures) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{112}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{113}
 }
 func (m *RuntimeHandlerFeatures) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8003,7 +8073,7 @@ type RuntimeHandler struct {
 func (m *RuntimeHandler) Reset()      { *m = RuntimeHandler{} }
 func (*RuntimeHandler) ProtoMessage() {}
 func (*RuntimeHandler) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{113}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{114}
 }
 func (m *RuntimeHandler) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8059,7 +8129,7 @@ type RuntimeFeatures struct {
 func (m *RuntimeFeatures) Reset()      { *m = RuntimeFeatures{} }
 func (*RuntimeFeatures) ProtoMessage() {}
 func (*RuntimeFeatures) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{114}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{115}
 }
 func (m *RuntimeFeatures) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8115,7 +8185,7 @@ type StatusResponse struct {
 func (m *StatusResponse) Reset()      { *m = StatusResponse{} }
 func (*StatusResponse) ProtoMessage() {}
 func (*StatusResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{115}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{116}
 }
 func (m *StatusResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8180,7 +8250,7 @@ type ImageFsInfoRequest struct {
 func (m *ImageFsInfoRequest) Reset()      { *m = ImageFsInfoRequest{} }
 func (*ImageFsInfoRequest) ProtoMessage() {}
 func (*ImageFsInfoRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{116}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{117}
 }
 func (m *ImageFsInfoRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8220,7 +8290,7 @@ type UInt64Value struct {
 func (m *UInt64Value) Reset()      { *m = UInt64Value{} }
 func (*UInt64Value) ProtoMessage() {}
 func (*UInt64Value) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{117}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{118}
 }
 func (m *UInt64Value) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8267,7 +8337,7 @@ type FilesystemIdentifier struct {
 func (m *FilesystemIdentifier) Reset()      { *m = FilesystemIdentifier{} }
 func (*FilesystemIdentifier) ProtoMessage() {}
 func (*FilesystemIdentifier) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{118}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{119}
 }
 func (m *FilesystemIdentifier) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8324,7 +8394,7 @@ type FilesystemUsage struct {
 func (m *FilesystemUsage) Reset()      { *m = FilesystemUsage{} }
 func (*FilesystemUsage) ProtoMessage() {}
 func (*FilesystemUsage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{119}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{120}
 }
 func (m *FilesystemUsage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8398,7 +8468,7 @@ type WindowsFilesystemUsage struct {
 func (m *WindowsFilesystemUsage) Reset()      { *m = WindowsFilesystemUsage{} }
 func (*WindowsFilesystemUsage) ProtoMessage() {}
 func (*WindowsFilesystemUsage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{120}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{121}
 }
 func (m *WindowsFilesystemUsage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8463,7 +8533,7 @@ type ImageFsInfoResponse struct {
 func (m *ImageFsInfoResponse) Reset()      { *m = ImageFsInfoResponse{} }
 func (*ImageFsInfoResponse) ProtoMessage() {}
 func (*ImageFsInfoResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{121}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{122}
 }
 func (m *ImageFsInfoResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8516,7 +8586,7 @@ type ContainerStatsRequest struct {
 func (m *ContainerStatsRequest) Reset()      { *m = ContainerStatsRequest{} }
 func (*ContainerStatsRequest) ProtoMessage() {}
 func (*ContainerStatsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{122}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{123}
 }
 func (m *ContainerStatsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8562,7 +8632,7 @@ type ContainerStatsResponse struct {
 func (m *ContainerStatsResponse) Reset()      { *m = ContainerStatsResponse{} }
 func (*ContainerStatsResponse) ProtoMessage() {}
 func (*ContainerStatsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{123}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{124}
 }
 func (m *ContainerStatsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8608,7 +8678,7 @@ type ListContainerStatsRequest struct {
 func (m *ListContainerStatsRequest) Reset()      { *m = ListContainerStatsRequest{} }
 func (*ListContainerStatsRequest) ProtoMessage() {}
 func (*ListContainerStatsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{124}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{125}
 }
 func (m *ListContainerStatsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8662,7 +8732,7 @@ type ContainerStatsFilter struct {
 func (m *ContainerStatsFilter) Reset()      { *m = ContainerStatsFilter{} }
 func (*ContainerStatsFilter) ProtoMessage() {}
 func (*ContainerStatsFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{125}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{126}
 }
 func (m *ContainerStatsFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8722,7 +8792,7 @@ type ListContainerStatsResponse struct {
 func (m *ListContainerStatsResponse) Reset()      { *m = ListContainerStatsResponse{} }
 func (*ListContainerStatsResponse) ProtoMessage() {}
 func (*ListContainerStatsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{126}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{127}
 }
 func (m *ListContainerStatsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8778,7 +8848,7 @@ type ContainerAttributes struct {
 func (m *ContainerAttributes) Reset()      { *m = ContainerAttributes{} }
 func (*ContainerAttributes) ProtoMessage() {}
 func (*ContainerAttributes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{127}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{128}
 }
 func (m *ContainerAttributes) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8854,7 +8924,7 @@ type ContainerStats struct {
 func (m *ContainerStats) Reset()      { *m = ContainerStats{} }
 func (*ContainerStats) ProtoMessage() {}
 func (*ContainerStats) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{128}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{129}
 }
 func (m *ContainerStats) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -8935,7 +9005,7 @@ type WindowsContainerStats struct {
 func (m *WindowsContainerStats) Reset()      { *m = WindowsContainerStats{} }
 func (*WindowsContainerStats) ProtoMessage() {}
 func (*WindowsContainerStats) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{129}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{130}
 }
 func (m *WindowsContainerStats) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9008,7 +9078,7 @@ type CpuUsage struct {
 func (m *CpuUsage) Reset()      { *m = CpuUsage{} }
 func (*CpuUsage) ProtoMessage() {}
 func (*CpuUsage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{130}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{131}
 }
 func (m *CpuUsage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9074,7 +9144,7 @@ type WindowsCpuUsage struct {
 func (m *WindowsCpuUsage) Reset()      { *m = WindowsCpuUsage{} }
 func (*WindowsCpuUsage) ProtoMessage() {}
 func (*WindowsCpuUsage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{131}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{132}
 }
 func (m *WindowsCpuUsage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9147,7 +9217,7 @@ type MemoryUsage struct {
 func (m *MemoryUsage) Reset()      { *m = MemoryUsage{} }
 func (*MemoryUsage) ProtoMessage() {}
 func (*MemoryUsage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{132}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{133}
 }
 func (m *MemoryUsage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9239,7 +9309,7 @@ type SwapUsage struct {
 func (m *SwapUsage) Reset()      { *m = SwapUsage{} }
 func (*SwapUsage) ProtoMessage() {}
 func (*SwapUsage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{133}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{134}
 }
 func (m *SwapUsage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9308,7 +9378,7 @@ type WindowsMemoryUsage struct {
 func (m *WindowsMemoryUsage) Reset()      { *m = WindowsMemoryUsage{} }
 func (*WindowsMemoryUsage) ProtoMessage() {}
 func (*WindowsMemoryUsage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{134}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{135}
 }
 func (m *WindowsMemoryUsage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9382,7 +9452,7 @@ type ReopenContainerLogRequest struct {
 func (m *ReopenContainerLogRequest) Reset()      { *m = ReopenContainerLogRequest{} }
 func (*ReopenContainerLogRequest) ProtoMessage() {}
 func (*ReopenContainerLogRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{135}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{136}
 }
 func (m *ReopenContainerLogRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9426,7 +9496,7 @@ type ReopenContainerLogResponse struct {
 func (m *ReopenContainerLogResponse) Reset()      { *m = ReopenContainerLogResponse{} }
 func (*ReopenContainerLogResponse) ProtoMessage() {}
 func (*ReopenContainerLogResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{136}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{137}
 }
 func (m *ReopenContainerLogResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9463,9 +9533,9 @@ type CheckpointContainerRequest struct {
 	// Timeout in seconds for the checkpoint to complete.
 	// Timeout of zero means to use the CRI default.
 	// Timeout > 0 means to use the user specified timeout.
-	Timeout              int64    `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Timeout int64 `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	// Exit indicates if the container should be stopped after the checkpoint
-	Exit bool `protobuf:"varint,4,opt,name=exit,proto3" json:"exit,omitempty"`
+	Exit                 bool     `protobuf:"varint,4,opt,name=exit,proto3" json:"exit,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
@@ -9473,7 +9543,7 @@ type CheckpointContainerRequest struct {
 func (m *CheckpointContainerRequest) Reset()      { *m = CheckpointContainerRequest{} }
 func (*CheckpointContainerRequest) ProtoMessage() {}
 func (*CheckpointContainerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{137}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{138}
 }
 func (m *CheckpointContainerRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9538,7 +9608,7 @@ type CheckpointContainerResponse struct {
 func (m *CheckpointContainerResponse) Reset()      { *m = CheckpointContainerResponse{} }
 func (*CheckpointContainerResponse) ProtoMessage() {}
 func (*CheckpointContainerResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{138}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{139}
 }
 func (m *CheckpointContainerResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9575,7 +9645,7 @@ type GetEventsRequest struct {
 func (m *GetEventsRequest) Reset()      { *m = GetEventsRequest{} }
 func (*GetEventsRequest) ProtoMessage() {}
 func (*GetEventsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{139}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{140}
 }
 func (m *GetEventsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9609,7 +9679,7 @@ type ContainerEventResponse struct {
 	ContainerId string `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
 	// Type of the container event
 	ContainerEventType ContainerEventType `protobuf:"varint,2,opt,name=container_event_type,json=containerEventType,proto3,enum=runtime.v1.ContainerEventType" json:"container_event_type,omitempty"`
-	// Creation timestamp of this event
+	// Creation timestamp in nanoseconds of this event
 	CreatedAt int64 `protobuf:"varint,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Sandbox status
 	PodSandboxStatus *PodSandboxStatus `protobuf:"bytes,4,opt,name=pod_sandbox_status,json=podSandboxStatus,proto3" json:"pod_sandbox_status,omitempty"`
@@ -9622,7 +9692,7 @@ type ContainerEventResponse struct {
 func (m *ContainerEventResponse) Reset()      { *m = ContainerEventResponse{} }
 func (*ContainerEventResponse) ProtoMessage() {}
 func (*ContainerEventResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{140}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{141}
 }
 func (m *ContainerEventResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9694,7 +9764,7 @@ type ListMetricDescriptorsRequest struct {
 func (m *ListMetricDescriptorsRequest) Reset()      { *m = ListMetricDescriptorsRequest{} }
 func (*ListMetricDescriptorsRequest) ProtoMessage() {}
 func (*ListMetricDescriptorsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{141}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{142}
 }
 func (m *ListMetricDescriptorsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9732,7 +9802,7 @@ type ListMetricDescriptorsResponse struct {
 func (m *ListMetricDescriptorsResponse) Reset()      { *m = ListMetricDescriptorsResponse{} }
 func (*ListMetricDescriptorsResponse) ProtoMessage() {}
 func (*ListMetricDescriptorsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{142}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{143}
 }
 func (m *ListMetricDescriptorsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9785,7 +9855,7 @@ type MetricDescriptor struct {
 func (m *MetricDescriptor) Reset()      { *m = MetricDescriptor{} }
 func (*MetricDescriptor) ProtoMessage() {}
 func (*MetricDescriptor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{143}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{144}
 }
 func (m *MetricDescriptor) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9843,7 +9913,7 @@ type ListPodSandboxMetricsRequest struct {
 func (m *ListPodSandboxMetricsRequest) Reset()      { *m = ListPodSandboxMetricsRequest{} }
 func (*ListPodSandboxMetricsRequest) ProtoMessage() {}
 func (*ListPodSandboxMetricsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{144}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{145}
 }
 func (m *ListPodSandboxMetricsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9881,7 +9951,7 @@ type ListPodSandboxMetricsResponse struct {
 func (m *ListPodSandboxMetricsResponse) Reset()      { *m = ListPodSandboxMetricsResponse{} }
 func (*ListPodSandboxMetricsResponse) ProtoMessage() {}
 func (*ListPodSandboxMetricsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{145}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{146}
 }
 func (m *ListPodSandboxMetricsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9928,7 +9998,7 @@ type PodSandboxMetrics struct {
 func (m *PodSandboxMetrics) Reset()      { *m = PodSandboxMetrics{} }
 func (*PodSandboxMetrics) ProtoMessage() {}
 func (*PodSandboxMetrics) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{146}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{147}
 }
 func (m *PodSandboxMetrics) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -9988,7 +10058,7 @@ type ContainerMetrics struct {
 func (m *ContainerMetrics) Reset()      { *m = ContainerMetrics{} }
 func (*ContainerMetrics) ProtoMessage() {}
 func (*ContainerMetrics) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{147}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{148}
 }
 func (m *ContainerMetrics) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -10036,7 +10106,7 @@ type Metric struct {
 	// otherwise, it will be ignored.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Timestamp should be 0 if the metric was gathered live.
-	// If it was cached, the Timestamp should reflect the time it was collected.
+	// If it was cached, the Timestamp should reflect the time in nanoseconds it was collected.
 	Timestamp  int64      `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	MetricType MetricType `protobuf:"varint,3,opt,name=metric_type,json=metricType,proto3,enum=runtime.v1.MetricType" json:"metric_type,omitempty"`
 	// The corresponding LabelValues to the LabelKeys defined in the MetricDescriptor.
@@ -10051,7 +10121,7 @@ type Metric struct {
 func (m *Metric) Reset()      { *m = Metric{} }
 func (*Metric) ProtoMessage() {}
 func (*Metric) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{148}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{149}
 }
 func (m *Metric) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -10123,7 +10193,7 @@ type RuntimeConfigRequest struct {
 func (m *RuntimeConfigRequest) Reset()      { *m = RuntimeConfigRequest{} }
 func (*RuntimeConfigRequest) ProtoMessage() {}
 func (*RuntimeConfigRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{149}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{150}
 }
 func (m *RuntimeConfigRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -10164,7 +10234,7 @@ type RuntimeConfigResponse struct {
 func (m *RuntimeConfigResponse) Reset()      { *m = RuntimeConfigResponse{} }
 func (*RuntimeConfigResponse) ProtoMessage() {}
 func (*RuntimeConfigResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{150}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{151}
 }
 func (m *RuntimeConfigResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -10216,7 +10286,7 @@ type LinuxRuntimeConfiguration struct {
 func (m *LinuxRuntimeConfiguration) Reset()      { *m = LinuxRuntimeConfiguration{} }
 func (*LinuxRuntimeConfiguration) ProtoMessage() {}
 func (*LinuxRuntimeConfiguration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{151}
+	return fileDescriptor_00212fb1f9d3bf1c, []int{152}
 }
 func (m *LinuxRuntimeConfiguration) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -10339,6 +10409,7 @@ func init() {
 	proto.RegisterType((*WindowsContainerSecurityContext)(nil), "runtime.v1.WindowsContainerSecurityContext")
 	proto.RegisterType((*WindowsContainerConfig)(nil), "runtime.v1.WindowsContainerConfig")
 	proto.RegisterType((*WindowsContainerResources)(nil), "runtime.v1.WindowsContainerResources")
+	proto.RegisterType((*WindowsCpuGroupAffinity)(nil), "runtime.v1.WindowsCpuGroupAffinity")
 	proto.RegisterType((*ContainerMetadata)(nil), "runtime.v1.ContainerMetadata")
 	proto.RegisterType((*Device)(nil), "runtime.v1.Device")
 	proto.RegisterType((*CDIDevice)(nil), "runtime.v1.CDIDevice")
@@ -15836,6 +15907,20 @@ func (m *WindowsContainerResources) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	_ = i
 	var l int
 	_ = l
+	if len(m.AffinityCpus) > 0 {
+		for iNdEx := len(m.AffinityCpus) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.AffinityCpus[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintApi(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x32
+		}
+	}
 	if m.RootfsSizeInBytes != 0 {
 		i = encodeVarintApi(dAtA, i, uint64(m.RootfsSizeInBytes))
 		i--
@@ -15858,6 +15943,39 @@ func (m *WindowsContainerResources) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	}
 	if m.CpuShares != 0 {
 		i = encodeVarintApi(dAtA, i, uint64(m.CpuShares))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WindowsCpuGroupAffinity) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WindowsCpuGroupAffinity) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *WindowsCpuGroupAffinity) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.CpuGroup != 0 {
+		i = encodeVarintApi(dAtA, i, uint64(m.CpuGroup))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.CpuMask != 0 {
+		i = encodeVarintApi(dAtA, i, uint64(m.CpuMask))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -21636,6 +21754,27 @@ func (m *WindowsContainerResources) Size() (n int) {
 	if m.RootfsSizeInBytes != 0 {
 		n += 1 + sovApi(uint64(m.RootfsSizeInBytes))
 	}
+	if len(m.AffinityCpus) > 0 {
+		for _, e := range m.AffinityCpus {
+			l = e.Size()
+			n += 1 + l + sovApi(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *WindowsCpuGroupAffinity) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CpuMask != 0 {
+		n += 1 + sovApi(uint64(m.CpuMask))
+	}
+	if m.CpuGroup != 0 {
+		n += 1 + sovApi(uint64(m.CpuGroup))
+	}
 	return n
 }
 
@@ -24373,12 +24512,29 @@ func (this *WindowsContainerResources) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForAffinityCpus := "[]*WindowsCpuGroupAffinity{"
+	for _, f := range this.AffinityCpus {
+		repeatedStringForAffinityCpus += strings.Replace(f.String(), "WindowsCpuGroupAffinity", "WindowsCpuGroupAffinity", 1) + ","
+	}
+	repeatedStringForAffinityCpus += "}"
 	s := strings.Join([]string{`&WindowsContainerResources{`,
 		`CpuShares:` + fmt.Sprintf("%v", this.CpuShares) + `,`,
 		`CpuCount:` + fmt.Sprintf("%v", this.CpuCount) + `,`,
 		`CpuMaximum:` + fmt.Sprintf("%v", this.CpuMaximum) + `,`,
 		`MemoryLimitInBytes:` + fmt.Sprintf("%v", this.MemoryLimitInBytes) + `,`,
 		`RootfsSizeInBytes:` + fmt.Sprintf("%v", this.RootfsSizeInBytes) + `,`,
+		`AffinityCpus:` + repeatedStringForAffinityCpus + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *WindowsCpuGroupAffinity) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&WindowsCpuGroupAffinity{`,
+		`CpuMask:` + fmt.Sprintf("%v", this.CpuMask) + `,`,
+		`CpuGroup:` + fmt.Sprintf("%v", this.CpuGroup) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -36465,6 +36621,128 @@ func (m *WindowsContainerResources) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.RootfsSizeInBytes |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AffinityCpus", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthApi
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AffinityCpus = append(m.AffinityCpus, &WindowsCpuGroupAffinity{})
+			if err := m.AffinityCpus[len(m.AffinityCpus)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WindowsCpuGroupAffinity) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WindowsCpuGroupAffinity: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WindowsCpuGroupAffinity: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CpuMask", wireType)
+			}
+			m.CpuMask = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CpuMask |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CpuGroup", wireType)
+			}
+			m.CpuGroup = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CpuGroup |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
