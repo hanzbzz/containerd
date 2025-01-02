@@ -209,19 +209,12 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 
 func withCheckpointOpts(rt, rootDir string) client.CheckpointTaskOpts {
 	return func(r *client.CheckpointTaskInfo) error {
-		// Kubernetes currently supports checkpointing of container
-		// as part of the Forensic Container Checkpointing KEP.
-		// This implies that the container is never stopped
-		leaveRunning := true
-
 		switch rt {
 		case plugins.RuntimeRuncV2:
 			if r.Options == nil {
 				r.Options = &options.CheckpointOptions{}
 			}
 			opts, _ := r.Options.(*options.CheckpointOptions)
-
-			opts.Exit = !leaveRunning
 			opts.WorkPath = rootDir
 		}
 		return nil
