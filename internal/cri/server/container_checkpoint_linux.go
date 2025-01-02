@@ -145,9 +145,16 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 		}
 
 		// Wait for the task to exit
-		_, err = task.Wait(ctx)
+		waitCh, err := task.Wait(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("waiting for task to stop for container %q failed: %w", r.GetContainerId(), err)
+		}
+
+		select {
+		case <-waitCh:
+			// Task exited succesfully
+		case <-ctx.Done():
+			return nil, fmt.Errorf("context canceled while waiting for task to stop for container %q: %w", r.GetContainerId(), ctx.Err())
 		}
 
 		_, err = task.Delete(ctx)
