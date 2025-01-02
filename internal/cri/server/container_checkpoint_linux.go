@@ -139,7 +139,7 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
 	}
 	if r.Exit {
-		err = task.Kill(ctx, syscall.SIGTERM)
+		err = task.Kill(ctx, syscall.SIGKILL)
 		if err != nil {
 			return nil, fmt.Errorf("killing of task for container %q failed: %w", r.GetContainerId(), err)
 		}
