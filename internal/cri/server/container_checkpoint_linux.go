@@ -138,31 +138,6 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
 	}
-	if r.Exit {
-		err = task.Kill(ctx, syscall.SIGKILL)
-		if err != nil {
-			return nil, fmt.Errorf("killing of task for container %q failed: %w", r.GetContainerId(), err)
-		}
-
-		// Wait for the task to exit
-		waitCh, err := task.Wait(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("waiting for task to stop for container %q failed: %w", r.GetContainerId(), err)
-		}
-
-		select {
-		case <-waitCh:
-			// Task exited succesfully
-		case <-ctx.Done():
-			return nil, fmt.Errorf("context canceled while waiting for task to stop for container %q: %w", r.GetContainerId(), ctx.Err())
-		}
-
-		_, err = task.Delete(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("deleting of task for container %q failed: %w", r.GetContainerId(), err)
-		}
-	}
-
 	// the checkpoint image has been provided as an index with manifests representing the tar of criu data, the rw layer, and the config
 	var (
 		index        v1.Index
@@ -228,6 +203,14 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	}
 
 	containerCheckpointTimer.WithValues(i.Runtime.Name).UpdateSince(start)
+
+	if r.Exit {
+		// kill the task
+		err = task.Kill(ctx, syscall.SIGKILL)
+		if err != nil {
+			return nil, fmt.Errorf("killing of task for container %q failed: %w", r.GetContainerId(), err)
+		}
+	}
 
 	return &runtime.CheckpointContainerResponse{}, nil
 }
