@@ -132,7 +132,8 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	//opts := {}client.CheckpointOpts
 	//opts.Exit = r.Exit
 	//opts.WorkPath = c.getContainerRootDir(r.GetContainerId())
-	img, err := container.Container.Checkpoint(ctx, "test", []client.CheckpointOpts{
+	imageName := strings.TrimSuffix(filepath.Base(r.Location), ".tar")
+	img, err := container.Container.Checkpoint(ctx, imageName, []client.CheckpointOpts{
 		client.WithCheckpointImage,
 		client.WithCheckpointRW,
 		client.WithCheckpointTask,
