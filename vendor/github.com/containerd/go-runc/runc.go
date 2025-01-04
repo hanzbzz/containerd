@@ -33,6 +33,7 @@ import (
 
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-spec/specs-go/features"
+	"k8s.io/klog/v2"
 )
 
 // Format is the type of log formatting options available
@@ -597,6 +598,7 @@ func PreDump(args []string) []string {
 // Checkpoint allows you to checkpoint a container using criu
 func (r *Runc) Checkpoint(context context.Context, id string, opts *CheckpointOpts, actions ...CheckpointAction) error {
 	args := []string{"checkpoint"}
+	klog.Warning("I WAS HERE")
 	extraFiles := []*os.File{}
 	if opts != nil {
 		args = append(args, opts.args()...)
