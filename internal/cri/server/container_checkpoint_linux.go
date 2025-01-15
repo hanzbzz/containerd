@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	crmetadata "github.com/checkpoint-restore/checkpointctl/lib"
@@ -129,17 +130,11 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 		return nil, fmt.Errorf("generating container config JSON failed: %w", err)
 	}
 
-	//opts := {}client.CheckpointOpts
-	//opts.Exit = r.Exit
-	//opts.WorkPath = c.getContainerRootDir(r.GetContainerId())
-	imageName := strings.TrimSuffix(filepath.Base(r.Location), ".tar")
-	img, err := container.Container.Checkpoint(ctx, imageName, []client.CheckpointOpts{
-		client.WithCheckpointImage,
-		client.WithCheckpointRW,
-		client.WithCheckpointTask,
-		client.WithCheckpointTaskExit,
-	}...)
-	//img, err := task.Checkpoint(ctx, []client.CheckpointTaskOpts{withCheckpointOpts(i.Runtime.Name, c.getContainerRootDir(r.GetContainerId()))}...)
+	task, err := container.Container.Task(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task for container %q: %w", r.GetContainerId(), err)
+	}
+	img, err := task.Checkpoint(ctx, []client.CheckpointTaskOpts{withCheckpointOpts(i.Runtime.Name, c.getContainerRootDir(r.GetContainerId()))}...)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
 	}
@@ -208,6 +203,14 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	}
 
 	containerCheckpointTimer.WithValues(i.Runtime.Name).UpdateSince(start)
+
+	if r.Exit {
+		// kill the task
+		err = task.Kill(ctx, syscall.SIGKILL)
+		if err != nil {
+			return nil, fmt.Errorf("killing of task for container %q failed: %w", r.GetContainerId(), err)
+		}
+	}
 
 	return &runtime.CheckpointContainerResponse{}, nil
 }
