@@ -134,12 +134,11 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	if r.Exit {
 		checkpointOpts = append(checkpointOpts, client.WithCheckpointTaskExit)
 	}
-	checkpointOpts.
-		client.WithCheckpointImage,
-		client.WithCheckpointRW,
-		client.WithCheckpointTask,
+	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
+	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
+	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
 
-		img, err := container.Container.Checkpoint(ctx, imageName, checkpointOpts...)
+	img, err := container.Container.Checkpoint(ctx, imageName, checkpointOpts...)
 
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
