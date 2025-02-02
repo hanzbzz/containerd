@@ -137,7 +137,7 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
-
+	log.L.Warn(checkpointOpts)
 	img, err := container.Container.Checkpoint(ctx, imageName, checkpointOpts...)
 
 	if err != nil {
