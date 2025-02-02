@@ -55,6 +55,8 @@ message CheckpointOptions {
 	string image_path = 8;
 	// checkpoint work path
 	string work_path = 9;
+	// encrypt the image
+	bool encrypt = 10;
 }
 
 message ProcessDetails {
