@@ -430,6 +430,8 @@ func (p *Init) checkpoint(ctx context.Context, r *CheckpointConfig) error {
 	if r.Encrypt {
 		actions = append(actions, runc.Encrypt)
 	}
+	log.G(ctx).Warn(r.Exit)
+	log.G(ctx).Warn(r.Encrypt)
 	// keep criu work directory if criu work dir is set
 	work := r.WorkDir
 	if work == "" {
