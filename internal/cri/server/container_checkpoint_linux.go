@@ -131,11 +131,11 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 
 	imageName := strings.TrimSuffix(filepath.Base(r.Location), ".tar")
 	var checkpointOpts = []client.CheckpointOpts{}
-	if r.Exit {
-		checkpointOpts = append(checkpointOpts, client.WithCheckpointTaskExit)
-	}
 	if r.Encrypt {
 		checkpointOpts = append(checkpointOpts, client.WithCheckpointEncrypt)
+	}
+	if !r.LeaveRunning {
+		checkpointOpts = append(checkpointOpts, client.WithCheckpointTaskExit)
 	}
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
