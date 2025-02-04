@@ -38,7 +38,7 @@ message Options {
 
 message CheckpointOptions {
 	// exit the container after a checkpoint
-	bool exit = 1;
+	bool leaveRunning = 1;
 	// checkpoint open tcp connections
 	bool open_tcp = 2;
 	// checkpoint external unix sockets
