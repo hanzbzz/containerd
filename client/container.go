@@ -356,12 +356,13 @@ func (c *container) Checkpoint(ctx context.Context, ref string, opts ...Checkpoi
 		Annotations: make(map[string]string),
 	}
 	copts := &options.CheckpointOptions{
-		LeaveRunning:        false,
+		LeaveRunning:        true,
 		OpenTcp:             false,
 		ExternalUnixSockets: false,
 		Terminal:            false,
 		FileLocks:           true,
 		EmptyNamespaces:     nil,
+		Encrypt:             false,
 	}
 	info, err := c.Info(ctx)
 	if err != nil {
