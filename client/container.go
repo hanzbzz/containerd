@@ -356,7 +356,7 @@ func (c *container) Checkpoint(ctx context.Context, ref string, opts ...Checkpoi
 		Annotations: make(map[string]string),
 	}
 	copts := &options.CheckpointOptions{
-		Exit:                false,
+		LeaveRunning:        false,
 		OpenTcp:             false,
 		ExternalUnixSockets: false,
 		Terminal:            false,
