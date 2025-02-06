@@ -140,7 +140,13 @@ func WithCheckpointRW(ctx context.Context, client *Client, c *containers.Contain
 
 // WithCheckpointTaskExit causes the task to exit after checkpoint
 func WithCheckpointTaskExit(ctx context.Context, client *Client, c *containers.Container, index *imagespec.Index, copts *options.CheckpointOptions) error {
-	copts.Exit = true
+	copts.LeaveRunning = false
+	return nil
+}
+
+// WithCheckpointEncrypt causes the resulting file to be encrypted
+func WithCheckpointEncrypt(ctx context.Context, client *Client, c *containers.Container, index *imagespec.Index, copts *options.CheckpointOptions) error {
+	copts.Encrypt = true
 	return nil
 }
 

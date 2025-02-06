@@ -589,6 +589,10 @@ func LeaveRunning(args []string) []string {
 	return append(args, "--leave-running")
 }
 
+func Encrypt(args []string) []string {
+	return append(args, "--encrypt")
+}
+
 // PreDump allows a pre-dump of the checkpoint to be made and completed later
 func PreDump(args []string) []string {
 	return append(args, "--pre-dump")
