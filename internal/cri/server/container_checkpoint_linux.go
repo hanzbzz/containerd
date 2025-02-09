@@ -141,9 +141,6 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
 	img, err := container.Container.Checkpoint(ctx, imageName, checkpointOpts...)
-	log.G(ctx).Warn(r.EncryptionCert)
-	log.G(ctx).Warn(r.Encrypt)
-	log.G(ctx).Warn(checkpointOpts)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
 	}
