@@ -64,4 +64,5 @@ type CheckpointConfig struct {
 	FileLocks                bool
 	EmptyNamespaces          []string
 	Encrypt                  bool
+	EncryptionCert           string
 }

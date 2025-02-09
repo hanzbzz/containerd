@@ -460,6 +460,7 @@ func (c *Container) Checkpoint(ctx context.Context, r *task.CheckpointTaskReques
 		EmptyNamespaces:          opts.EmptyNamespaces,
 		WorkDir:                  opts.WorkPath,
 		Encrypt:                  opts.Encrypt,
+		EncryptionCert:           opts.EncryptionCert,
 	})
 }
 
