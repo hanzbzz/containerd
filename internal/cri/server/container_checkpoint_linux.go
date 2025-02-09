@@ -133,6 +133,11 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	var checkpointOpts = []client.CheckpointOpts{}
 	if r.Encrypt {
 		checkpointOpts = append(checkpointOpts, client.WithCheckpointEncrypt)
+		// make sure the cert file exists
+		_, err := os.Stat(r.EncryptionCert)
+		if err != nil {
+			return nil, fmt.Errorf("file %v does not exist", r.EncryptionCert)
+		}
 	}
 	if !r.LeaveRunning {
 		checkpointOpts = append(checkpointOpts, client.WithCheckpointTaskExit)
@@ -140,11 +145,6 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
-	log.G(ctx).Warn(r.EncryptionCert)
-	entries, _ := os.ReadDir("/tmp/")
-	for _, e := range entries {
-		log.G(ctx).Warn(e.Name())
-	}
 	img, err := container.Container.Checkpoint(ctx, imageName, checkpointOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
