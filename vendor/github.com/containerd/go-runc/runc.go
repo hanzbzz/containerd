@@ -622,7 +622,7 @@ func (r *Runc) Checkpoint(context context.Context, id string, opts *CheckpointOp
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+
 	io.WriteString(file, "runc "+id+" ")
 	// Write args to file
 	for _, str := range args {
@@ -631,6 +631,7 @@ func (r *Runc) Checkpoint(context context.Context, id string, opts *CheckpointOp
 			panic(err)
 		}
 	}
+	file.Close()
 	cmd := r.command(context, append(args, id)...)
 	cmd.ExtraFiles = extraFiles
 	return r.runOrError(cmd)
