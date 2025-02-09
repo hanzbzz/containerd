@@ -363,7 +363,6 @@ func (c *container) Checkpoint(ctx context.Context, ref string, opts ...Checkpoi
 		FileLocks:           true,
 		EmptyNamespaces:     nil,
 		Encrypt:             false,
-		EncryptionCert:      "",
 	}
 	info, err := c.Info(ctx)
 	if err != nil {
