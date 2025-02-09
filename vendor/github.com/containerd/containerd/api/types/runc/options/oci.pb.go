@@ -312,7 +312,7 @@ type ProcessDetails struct {
 	unknownFields protoimpl.UnknownFields
 
 	// exec process id if the process is managed by a shim
-	ExecId string `protobuf:"bytes,1,opt,name=exec_id,json=execId,proto3" json:"exec_id,omitempty"`
+	ExecID string `protobuf:"bytes,1,opt,name=exec_id,json=execId,proto3" json:"exec_id,omitempty"`
 }
 
 func (x *ProcessDetails) Reset() {
@@ -347,9 +347,9 @@ func (*ProcessDetails) Descriptor() ([]byte, []int) {
 	return file_github_com_containerd_containerd_api_types_runc_options_oci_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ProcessDetails) GetExecId() string {
+func (x *ProcessDetails) GetExecID() string {
 	if x != nil {
-		return x.ExecId
+		return x.ExecID
 	}
 	return ""
 }
