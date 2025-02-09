@@ -580,6 +580,9 @@ func (o *CheckpointOpts) args() (out []string) {
 	if len(o.ExtraArgs) > 0 {
 		out = append(out, o.ExtraArgs...)
 	}
+	if o.EncryptionCert != "" {
+		out = append(out, "--encryption-cert", o.EncryptionCert)
+	}
 	return out
 }
 
