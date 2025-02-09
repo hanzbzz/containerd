@@ -44,7 +44,6 @@ import (
 
 	"github.com/containerd/containerd/v2/client"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"k8s.io/klog/v2"
 )
 
 // PodCriuVersion is the version of CRIU needed for
@@ -146,9 +145,6 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
-	for _, e := range checkpointOpts {
-		klog.Warning(e)
-	}
 	img, err := container.Container.Checkpoint(ctx, imageName, checkpointOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
