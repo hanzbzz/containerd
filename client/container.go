@@ -31,11 +31,11 @@ import (
 	"github.com/containerd/errdefs"
 	"github.com/containerd/errdefs/pkg/errgrpc"
 	"github.com/containerd/fifo"
+	"github.com/containerd/log"
 	"github.com/containerd/typeurl/v2"
 	ver "github.com/opencontainers/image-spec/specs-go"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"k8s.io/klog/v2"
 
 	"github.com/containerd/containerd/v2/core/containers"
 	"github.com/containerd/containerd/v2/core/images"
@@ -397,7 +397,7 @@ func (c *container) Checkpoint(ctx context.Context, ref string, opts ...Checkpoi
 			}
 		}
 	}
-	klog.Warning(fmt.Printf("%+v\n", copts))
+	log.G(ctx).Warn(fmt.Printf("%+v\n", copts))
 	desc, err := writeIndex(ctx, index, c.client, c.ID()+"index")
 	if err != nil {
 		return nil, err
