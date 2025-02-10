@@ -549,7 +549,6 @@ func (s *service) Checkpoint(ctx context.Context, r *taskAPI.CheckpointTaskReque
 	if err != nil {
 		return nil, err
 	}
-	log.G(ctx).Warn(r.Options)
 	if err := container.Checkpoint(ctx, r); err != nil {
 		return nil, errgrpc.ToGRPC(err)
 	}

@@ -31,7 +31,6 @@ import (
 	"github.com/containerd/errdefs"
 	"github.com/containerd/errdefs/pkg/errgrpc"
 	"github.com/containerd/fifo"
-	"github.com/containerd/log"
 	"github.com/containerd/typeurl/v2"
 	ver "github.com/opencontainers/image-spec/specs-go"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -401,7 +400,6 @@ func (c *container) Checkpoint(ctx context.Context, ref string, checkpointOption
 			}
 		}
 	}
-	log.G(ctx).Warn(fmt.Printf("%+v\n", checkpointOptions))
 	desc, err := writeIndex(ctx, index, c.client, c.ID()+"index")
 	if err != nil {
 		return nil, err
