@@ -128,7 +128,16 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	if err != nil {
 		return nil, fmt.Errorf("generating container config JSON failed: %w", err)
 	}
-
+	copts := &options.CheckpointOptions{
+		LeaveRunning:        r.LeaveRunning,
+		EncryptionCert:      r.EncryptionCert,
+		Encrypt:             r.Encrypt,
+		OpenTcp:             false,
+		ExternalUnixSockets: false,
+		Terminal:            false,
+		FileLocks:           true,
+		EmptyNamespaces:     nil,
+	}
 	imageName := strings.TrimSuffix(filepath.Base(r.Location), ".tar")
 	var checkpointOpts = []client.CheckpointOpts{}
 	if r.Encrypt {
@@ -145,7 +154,7 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
-	img, err := container.Container.Checkpoint(ctx, imageName, checkpointOpts...)
+	img, err := container.Container.Checkpoint(ctx, imageName, copts, checkpointOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
 	}
