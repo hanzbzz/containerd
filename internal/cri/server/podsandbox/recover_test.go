@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/containerd/containerd/api/types"
+	"github.com/containerd/containerd/api/types/runc/options"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/core/containers"
 	criconfig "github.com/containerd/containerd/v2/internal/cri/config"
@@ -194,7 +195,7 @@ func (f *fakeContainer) Update(ctx context.Context, opts ...containerd.UpdateCon
 	return errdefs.ErrNotImplemented
 }
 
-func (f *fakeContainer) Checkpoint(ctx context.Context, s string, opts ...containerd.CheckpointOpts) (containerd.Image, error) {
+func (f *fakeContainer) Checkpoint(ctx context.Context, s string, checkpointOptions *options.CheckpointOptions, opts ...containerd.CheckpointOpts) (containerd.Image, error) {
 	return nil, errdefs.ErrNotImplemented
 }
 

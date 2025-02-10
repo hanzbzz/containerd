@@ -360,6 +360,19 @@ func (c *container) Checkpoint(ctx context.Context, ref string, checkpointOption
 	if err != nil {
 		return nil, err
 	}
+	// default values
+	if checkpointOptions == nil {
+		checkpointOptions = &options.CheckpointOptions{
+			LeaveRunning:        true,
+			EncryptionCert:      "",
+			Encrypt:             false,
+			OpenTcp:             false,
+			ExternalUnixSockets: false,
+			Terminal:            false,
+			FileLocks:           true,
+			EmptyNamespaces:     nil,
+		}
+	}
 
 	img, err := c.Image(ctx)
 	if err != nil {
