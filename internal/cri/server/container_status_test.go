@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containerd/containerd/api/types/runc/options"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/core/containers"
 	criconfig "github.com/containerd/containerd/v2/internal/cri/config"
@@ -333,7 +334,7 @@ func (c *fakeSpecOnlyContainer) Spec(context.Context) (*specs.Spec, error) {
 }
 
 // Checkpoint implements client.Container.
-func (c *fakeSpecOnlyContainer) Checkpoint(context.Context, string, ...containerd.CheckpointOpts) (containerd.Image, error) {
+func (c *fakeSpecOnlyContainer) Checkpoint(context.Context, string, *options.CheckpointOptions, ...containerd.CheckpointOpts) (containerd.Image, error) {
 	c.t.Error("fakeSpecOnlyContainer.Checkpoint: not implemented")
 	return nil, errors.New("not implemented")
 }

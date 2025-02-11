@@ -147,6 +147,7 @@ func WithCheckpointTaskExit(ctx context.Context, client *Client, c *containers.C
 // WithCheckpointEncrypt causes the resulting file to be encrypted
 func WithCheckpointEncrypt(ctx context.Context, client *Client, c *containers.Container, index *imagespec.Index, copts *options.CheckpointOptions) error {
 	copts.Encrypt = true
+	copts.EncryptionCert = copts.EncryptionCert
 	return nil
 }
 

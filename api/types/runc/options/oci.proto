@@ -57,6 +57,8 @@ message CheckpointOptions {
 	string work_path = 9;
 	// encrypt the image
 	bool encrypt = 10;
+	// location of the TLS cert to use for encryption
+    string encryptionCert = 11;
 }
 
 message ProcessDetails {
