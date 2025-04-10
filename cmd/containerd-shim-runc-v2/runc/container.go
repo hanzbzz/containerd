@@ -452,13 +452,15 @@ func (c *Container) Checkpoint(ctx context.Context, r *task.CheckpointTaskReques
 	}
 	return p.(*process.Init).Checkpoint(ctx, &process.CheckpointConfig{
 		Path:                     r.Path,
-		Exit:                     opts.Exit,
+		LeaveRunning:             opts.LeaveRunning,
 		AllowOpenTCP:             opts.OpenTcp,
 		AllowExternalUnixSockets: opts.ExternalUnixSockets,
 		AllowTerminal:            opts.Terminal,
 		FileLocks:                opts.FileLocks,
 		EmptyNamespaces:          opts.EmptyNamespaces,
 		WorkDir:                  opts.WorkPath,
+		Encrypt:                  opts.Encrypt,
+		EncryptionCert:           opts.EncryptionCert,
 	})
 }
 

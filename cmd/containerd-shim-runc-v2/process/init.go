@@ -424,16 +424,13 @@ func (p *Init) Checkpoint(ctx context.Context, r *CheckpointConfig) error {
 
 func (p *Init) checkpoint(ctx context.Context, r *CheckpointConfig) error {
 	var actions []runc.CheckpointAction
-	if !r.Exit {
-		actions = append(actions, runc.LeaveRunning)
-	}
 	// keep criu work directory if criu work dir is set
 	work := r.WorkDir
 	if work == "" {
 		work = filepath.Join(p.WorkDir, "criu-work")
 		defer os.RemoveAll(work)
 	}
-	if err := p.runtime.Checkpoint(ctx, p.id, &runc.CheckpointOpts{
+	var checkpointOpts = &runc.CheckpointOpts{
 		WorkDir:                  work,
 		ImagePath:                r.Path,
 		AllowOpenTCP:             r.AllowOpenTCP,
@@ -441,7 +438,15 @@ func (p *Init) checkpoint(ctx context.Context, r *CheckpointConfig) error {
 		AllowTerminal:            r.AllowTerminal,
 		FileLocks:                r.FileLocks,
 		EmptyNamespaces:          r.EmptyNamespaces,
-	}, actions...); err != nil {
+	}
+	if r.LeaveRunning {
+		actions = append(actions, runc.LeaveRunning)
+	}
+	if r.Encrypt {
+		actions = append(actions, runc.Encrypt)
+		checkpointOpts.EncryptionCert = r.EncryptionCert
+	}
+	if err := p.runtime.Checkpoint(ctx, p.id, checkpointOpts, actions...); err != nil {
 		dumpLog := filepath.Join(p.Bundle, "criu-dump.log")
 		if cerr := copyFile(dumpLog, filepath.Join(work, "dump.log")); cerr != nil {
 			log.G(ctx).WithError(cerr).Error("failed to copy dump.log to criu-dump.log")

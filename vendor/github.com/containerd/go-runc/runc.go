@@ -526,7 +526,9 @@ type CheckpointOpts struct {
 	LazyPages bool
 	// StatusFile is the file criu writes \0 to once lazy-pages is ready
 	StatusFile *os.File
-	ExtraArgs  []string
+	// EncryptionCert is file which holds the certificate to encrypt the checkpoint
+	EncryptionCert string
+	ExtraArgs      []string
 }
 
 // CgroupMode defines the cgroup mode used for checkpointing
@@ -578,6 +580,9 @@ func (o *CheckpointOpts) args() (out []string) {
 	if len(o.ExtraArgs) > 0 {
 		out = append(out, o.ExtraArgs...)
 	}
+	if o.EncryptionCert != "" {
+		out = append(out, "--encryption-cert", o.EncryptionCert)
+	}
 	return out
 }
 
@@ -587,6 +592,10 @@ type CheckpointAction func([]string) []string
 // LeaveRunning keeps the container running after the checkpoint has been completed
 func LeaveRunning(args []string) []string {
 	return append(args, "--leave-running")
+}
+
+func Encrypt(args []string) []string {
+	return append(args, "--encrypt")
 }
 
 // PreDump allows a pre-dump of the checkpoint to be made and completed later

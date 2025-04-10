@@ -128,16 +128,36 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	if err != nil {
 		return nil, fmt.Errorf("generating container config JSON failed: %w", err)
 	}
-
-	task, err := container.Container.Task(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task for container %q: %w", r.GetContainerId(), err)
+	copts := &options.CheckpointOptions{
+		LeaveRunning:        r.LeaveRunning,
+		EncryptionCert:      r.EncryptionCert,
+		Encrypt:             r.Encrypt,
+		OpenTcp:             false,
+		ExternalUnixSockets: false,
+		Terminal:            false,
+		FileLocks:           true,
+		EmptyNamespaces:     nil,
 	}
-	img, err := task.Checkpoint(ctx, []client.CheckpointTaskOpts{withCheckpointOpts(i.Runtime.Name, c.getContainerRootDir(r.GetContainerId()))}...)
+	imageName := strings.TrimSuffix(filepath.Base(r.Location), ".tar")
+	var checkpointOpts = []client.CheckpointOpts{}
+	if r.Encrypt {
+		checkpointOpts = append(checkpointOpts, client.WithCheckpointEncrypt)
+		// make sure the cert file exists
+		_, err := os.Stat(r.EncryptionCert)
+		if err != nil {
+			return nil, fmt.Errorf("file %v does not exist", r.EncryptionCert)
+		}
+	}
+	if !r.LeaveRunning {
+		checkpointOpts = append(checkpointOpts, client.WithCheckpointTaskExit)
+	}
+	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
+	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
+	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
+	img, err := container.Container.Checkpoint(ctx, imageName, copts, checkpointOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("checkpointing container %q failed: %w", r.GetContainerId(), err)
 	}
-
 	// the checkpoint image has been provided as an index with manifests representing the tar of criu data, the rw layer, and the config
 	var (
 		index        v1.Index
@@ -203,7 +223,6 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	}
 
 	containerCheckpointTimer.WithValues(i.Runtime.Name).UpdateSince(start)
-
 	return &runtime.CheckpointContainerResponse{}, nil
 }
 

@@ -84,7 +84,7 @@ type Container interface {
 	// Update a container
 	Update(context.Context, ...UpdateContainerOpts) error
 	// Checkpoint creates a checkpoint image of the current container
-	Checkpoint(context.Context, string, ...CheckpointOpts) (Image, error)
+	Checkpoint(context.Context, string, *options.CheckpointOptions, ...CheckpointOpts) (Image, error)
 }
 
 func containerFromRecord(client *Client, c containers.Container) *container {
@@ -348,24 +348,29 @@ func (c *container) Update(ctx context.Context, opts ...UpdateContainerOpts) err
 	return nil
 }
 
-func (c *container) Checkpoint(ctx context.Context, ref string, opts ...CheckpointOpts) (Image, error) {
+func (c *container) Checkpoint(ctx context.Context, ref string, checkpointOptions *options.CheckpointOptions, opts ...CheckpointOpts) (Image, error) {
 	index := &ocispec.Index{
 		Versioned: ver.Versioned{
 			SchemaVersion: 2,
 		},
 		Annotations: make(map[string]string),
 	}
-	copts := &options.CheckpointOptions{
-		Exit:                false,
-		OpenTcp:             false,
-		ExternalUnixSockets: false,
-		Terminal:            false,
-		FileLocks:           true,
-		EmptyNamespaces:     nil,
-	}
 	info, err := c.Info(ctx)
 	if err != nil {
 		return nil, err
+	}
+	// default values
+	if checkpointOptions == nil {
+		checkpointOptions = &options.CheckpointOptions{
+			LeaveRunning:        true,
+			EncryptionCert:      "",
+			Encrypt:             false,
+			OpenTcp:             false,
+			ExternalUnixSockets: false,
+			Terminal:            false,
+			FileLocks:           true,
+			EmptyNamespaces:     nil,
+		}
 	}
 
 	img, err := c.Image(ctx)
@@ -388,14 +393,13 @@ func (c *container) Checkpoint(ctx context.Context, ref string, opts ...Checkpoi
 
 	// process remaining opts
 	for _, o := range opts {
-		if err := o(ctx, c.client, &info, index, copts); err != nil {
+		if err := o(ctx, c.client, &info, index, checkpointOptions); err != nil {
 			err = errgrpc.ToNative(err)
 			if !errdefs.IsAlreadyExists(err) {
 				return nil, err
 			}
 		}
 	}
-
 	desc, err := writeIndex(ctx, index, c.client, c.ID()+"index")
 	if err != nil {
 		return nil, err

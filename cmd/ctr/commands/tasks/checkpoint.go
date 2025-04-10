@@ -90,7 +90,7 @@ func withCheckpointOpts(rt string, cliContext *cli.Context) containerd.Checkpoin
 		opts, _ := r.Options.(*options.CheckpointOptions)
 
 		if cliContext.Bool("exit") {
-			opts.Exit = true
+			opts.LeaveRunning = true
 		}
 		if imagePath != "" {
 			opts.ImagePath = imagePath

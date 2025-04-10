@@ -38,7 +38,7 @@ message Options {
 
 message CheckpointOptions {
 	// exit the container after a checkpoint
-	bool exit = 1;
+	bool leaveRunning = 1;
 	// checkpoint open tcp connections
 	bool open_tcp = 2;
 	// checkpoint external unix sockets
@@ -55,6 +55,10 @@ message CheckpointOptions {
 	string image_path = 8;
 	// checkpoint work path
 	string work_path = 9;
+	// encrypt the image
+	bool encrypt = 10;
+	// location of the TLS cert to use for encryption
+    string encryptionCert = 11;
 }
 
 message ProcessDetails {

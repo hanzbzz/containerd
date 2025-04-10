@@ -93,7 +93,7 @@ var checkpointCommand = &cli.Command{
 			}()
 		}
 
-		if _, err := container.Checkpoint(ctx, ref, opts...); err != nil {
+		if _, err := container.Checkpoint(ctx, ref, nil, opts...); err != nil {
 			return err
 		}
 
