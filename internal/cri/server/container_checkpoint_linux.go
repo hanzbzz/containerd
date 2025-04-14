@@ -141,15 +141,11 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 	imageName := strings.TrimSuffix(filepath.Base(r.Location), ".tar")
 	var checkpointOpts = []client.CheckpointOpts{}
 	if r.Encrypt {
-		checkpointOpts = append(checkpointOpts, client.WithCheckpointEncrypt)
 		// make sure the cert file exists
 		_, err := os.Stat(r.EncryptionCert)
 		if err != nil {
 			return nil, fmt.Errorf("file %v does not exist", r.EncryptionCert)
 		}
-	}
-	if !r.LeaveRunning {
-		checkpointOpts = append(checkpointOpts, client.WithCheckpointTaskExit)
 	}
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
