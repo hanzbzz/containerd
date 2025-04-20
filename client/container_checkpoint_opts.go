@@ -147,3 +147,9 @@ func GetIndexByMediaType(index *imagespec.Index, mt string) (*imagespec.Descript
 	}
 	return nil, ErrMediaTypeNotFound
 }
+
+// WithCheckpointTaskExit causes the task to exit after checkpoint
+func WithCheckpointTaskExit(ctx context.Context, client *Client, c *containers.Container, index *imagespec.Index, copts *options.CheckpointOptions) error {
+	copts.LeaveRunning = false
+	return nil
+}

@@ -147,6 +147,9 @@ func (c *criService) CheckpointContainer(ctx context.Context, r *runtime.Checkpo
 			return nil, fmt.Errorf("file %v does not exist", r.EncryptionCert)
 		}
 	}
+	if !r.LeaveRunning {
+		checkpointOpts = append(checkpointOpts, client.WithCheckpointTaskExit)
+	}
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointImage)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointRW)
 	checkpointOpts = append(checkpointOpts, client.WithCheckpointTask)
